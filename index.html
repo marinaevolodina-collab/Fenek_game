@@ -171,29 +171,6 @@
   .stat-box .label { font-size: 12px; opacity: 0.6; }
   .stat-box .num { font-size: 28px; font-weight: 700; }
 
-  /* Toast */
-  #toast {
-    position: absolute;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: rgba(0,0,0,0.8);
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 12px;
-    font-size: 14px;
-    z-index: 30;
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-
-  #toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
   /* Hearts / misses */
   .hearts { display: flex; gap: 4px; }
   .heart { font-size: 18px; transition: all 0.2s; }
@@ -322,12 +299,13 @@ let stars = [];
 let lastSpawn = 0;
 let spawnInterval = 1400;
 let difficulty = 1;
-let foxX = 0;
+
+// 🦊 ИЗМЕНЕНИЯ: Увеличен размер фенька
+let foxWidth = 90;
 let foxY = 0;
-let foxWidth = 60;
-let foxHeight = 50;
+let foxX = 0;
 let foxTargetX = 0;
-let foxHappy = 0; // timer for happy expression
+let foxHappy = 0; 
 let foxSad = 0;
 let animFrame = 0;
 let gameTime = 0;
@@ -341,7 +319,6 @@ const SLIPPER_TYPES = [
   { emoji: '🥿', points: 1, speed: 1.1 },
 ];
 
-// Golden slipper (bonus)
 const GOLDEN = { emoji: '✨👟✨', points: 5, speed: 0.7, golden: true };
 
 function resize() {
@@ -351,7 +328,7 @@ function resize() {
   canvas.width = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
   ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
-  foxY = H - 80;
+  foxY = H - 100; // 🦊 Поднято, чтобы лапы стояли на "земле"
   if (!gameRunning) {
     foxX = W / 2;
     foxTargetX = foxX;
@@ -400,156 +377,148 @@ function drawStars() {
   });
 }
 
+// 🦊 ОБНОВЛЁННАЯ ФУНКЦИЯ РИСОВАНИЯ (Больше уши и тело)
 function drawFox(x, y) {
   const size = foxWidth;
   ctx.save();
   ctx.translate(x, y);
 
-  // Happy bounce
   let bounce = 0;
-  if (foxHappy > 0) {
-    bounce = Math.sin(foxHappy * 0.3) * 5;
-  }
+  if (foxHappy > 0) bounce = Math.sin(foxHappy * 0.3) * 5;
   ctx.translate(0, bounce);
 
-  // Body
+  // Тело (увеличено)
   ctx.fillStyle = '#f4a020';
   ctx.beginPath();
-  ctx.ellipse(0, 5, size * 0.35, size * 0.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 5, size * 0.45, size * 0.38, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Head
+  // Голова (увеличена)
   ctx.fillStyle = '#f4a020';
   ctx.beginPath();
-  ctx.ellipse(0, -size * 0.25, size * 0.3, size * 0.28, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -size * 0.2, size * 0.42, size * 0.35, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Ears
+  // 🌟 ОГРОМНЫЕ УШИ (в стиле фенька)
   ctx.fillStyle = '#e89010';
+  // Левое ухо
   ctx.beginPath();
-  ctx.moveTo(-size * 0.2, -size * 0.45);
-  ctx.lineTo(-size * 0.35, -size * 0.7);
-  ctx.lineTo(-size * 0.05, -size * 0.5);
+  ctx.moveTo(-size * 0.25, -size * 0.35);
+  ctx.lineTo(-size * 0.58, -size * 1.2);
+  ctx.lineTo(-size * 0.05, -size * 0.4);
   ctx.fill();
+  // Правое ухо
   ctx.beginPath();
-  ctx.moveTo(size * 0.2, -size * 0.45);
-  ctx.lineTo(size * 0.35, -size * 0.7);
-  ctx.lineTo(size * 0.05, -size * 0.5);
+  ctx.moveTo(size * 0.25, -size * 0.35);
+  ctx.lineTo(size * 0.58, -size * 1.2);
+  ctx.lineTo(size * 0.05, -size * 0.4);
   ctx.fill();
 
-  // Inner ears
+  // Внутренняя часть ушей
   ctx.fillStyle = '#ffb8b8';
   ctx.beginPath();
-  ctx.moveTo(-size * 0.18, -size * 0.48);
-  ctx.lineTo(-size * 0.3, -size * 0.65);
-  ctx.lineTo(-size * 0.08, -size * 0.52);
+  ctx.moveTo(-size * 0.22, -size * 0.4);
+  ctx.lineTo(-size * 0.52, -size * 1.1);
+  ctx.lineTo(-size * 0.08, -size * 0.45);
   ctx.fill();
   ctx.beginPath();
-  ctx.moveTo(size * 0.18, -size * 0.48);
-  ctx.lineTo(size * 0.3, -size * 0.65);
-  ctx.lineTo(size * 0.08, -size * 0.52);
+  ctx.moveTo(size * 0.22, -size * 0.4);
+  ctx.lineTo(size * 0.52, -size * 1.1);
+  ctx.lineTo(size * 0.08, -size * 0.45);
   ctx.fill();
 
-  // Face white area
+  // Белая мордочка
   ctx.fillStyle = '#fff5e6';
   ctx.beginPath();
-  ctx.ellipse(0, -size * 0.18, size * 0.2, size * 0.18, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -size * 0.15, size * 0.28, size * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eyes
-  const eyeY = -size * 0.28;
+  // Глаза
+  const eyeY = -size * 0.25;
   if (foxSad > 0) {
-    // Sad eyes (closed)
     ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(-size * 0.12, eyeY, 4, Math.PI, 0);
+    ctx.arc(-size * 0.15, eyeY, 5, Math.PI, 0);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(size * 0.12, eyeY, 4, Math.PI, 0);
+    ctx.arc(size * 0.15, eyeY, 5, Math.PI, 0);
     ctx.stroke();
-
-    // Tears
     ctx.fillStyle = '#66ccff';
     ctx.beginPath();
-    ctx.ellipse(-size * 0.18, eyeY + 8, 3, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(-size * 0.22, eyeY + 10, 4, 6, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(size * 0.18, eyeY + 8, 3, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(size * 0.22, eyeY + 10, 4, 6, 0, 0, Math.PI * 2);
     ctx.fill();
   } else if (foxHappy > 0) {
-    // Happy eyes
     ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(-size * 0.12, eyeY, 5, Math.PI, 0);
+    ctx.arc(-size * 0.15, eyeY, 6, Math.PI, 0);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(size * 0.12, eyeY, 5, Math.PI, 0);
+    ctx.arc(size * 0.15, eyeY, 6, Math.PI, 0);
     ctx.stroke();
   } else {
-    // Normal eyes
     ctx.fillStyle = '#333';
     ctx.beginPath();
-    ctx.ellipse(-size * 0.12, eyeY, 4, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(-size * 0.15, eyeY, 5, 6, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(size * 0.12, eyeY, 4, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(size * 0.15, eyeY, 5, 6, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    // Eye shine
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(-size * 0.1, eyeY - 2, 2, 0, Math.PI * 2);
+    ctx.arc(-size * 0.12, eyeY - 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(size * 0.14, eyeY - 2, 2, 0, Math.PI * 2);
+    ctx.arc(size * 0.18, eyeY - 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Nose
+  // Нос
   ctx.fillStyle = '#333';
   ctx.beginPath();
-  ctx.ellipse(0, -size * 0.15, 3, 2.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -size * 0.12, 4, 3, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Mouth
+  // Рот
   ctx.strokeStyle = '#333';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   if (foxHappy > 0) {
-    ctx.arc(0, -size * 0.1, 6, 0, Math.PI);
+    ctx.arc(0, -size * 0.05, 7, 0, Math.PI);
   } else if (foxSad > 0) {
-    ctx.arc(0, -size * 0.02, 6, Math.PI, 0);
+    ctx.arc(0, size * 0.02, 7, Math.PI, 0);
   } else {
-    ctx.moveTo(-4, -size * 0.1);
-    ctx.lineTo(0, -size * 0.08);
-    ctx.lineTo(4, -size * 0.1);
+    ctx.moveTo(-5, -size * 0.08);
+    ctx.lineTo(0, -size * 0.05);
+    ctx.lineTo(5, -size * 0.08);
   }
   ctx.stroke();
 
-  // Tail
-  const tailWag = Math.sin(animFrame * 0.08) * 8;
+  // Хвост
+  const tailWag = Math.sin(animFrame * 0.08) * 10;
   ctx.fillStyle = '#f4a020';
   ctx.beginPath();
-  ctx.moveTo(size * 0.25, 5);
-  ctx.quadraticCurveTo(size * 0.5 + tailWag, -5, size * 0.45 + tailWag, -20);
-  ctx.quadraticCurveTo(size * 0.35 + tailWag, -10, size * 0.25, 5);
+  ctx.moveTo(size * 0.3, 5);
+  ctx.quadraticCurveTo(size * 0.6 + tailWag, -8, size * 0.5 + tailWag, -25);
+  ctx.quadraticCurveTo(size * 0.4 + tailWag, -12, size * 0.3, 5);
   ctx.fill();
 
-  // Tail tip (white)
   ctx.fillStyle = '#fff5e6';
   ctx.beginPath();
-  ctx.ellipse(size * 0.45 + tailWag, -20, 6, 5, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(size * 0.5 + tailWag, -25, 8, 6, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Paws
+  // Лапы
   ctx.fillStyle = '#e89010';
   ctx.beginPath();
-  ctx.ellipse(-size * 0.2, size * 0.25, 8, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(-size * 0.25, size * 0.32, 10, 6, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(size * 0.2, size * 0.25, 8, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(size * 0.25, size * 0.32, 10, 6, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.restore();
@@ -561,7 +530,6 @@ function drawSlipper(s) {
   ctx.rotate(s.rotation);
 
   if (s.golden) {
-    // Glow effect
     ctx.shadowColor = '#ffcc00';
     ctx.shadowBlur = 20;
   }
@@ -609,7 +577,6 @@ function drawGround() {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, H - 40, W, 40);
 
-  // Ground line
   ctx.strokeStyle = 'rgba(255,255,255,0.1)';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -675,7 +642,6 @@ function catchSlipper(s) {
   foxHappy = 20;
   foxSad = 0;
 
-  // Effects
   const color = s.golden ? '#ffcc00' : '#ff8833';
   spawnParticles(s.x, s.y, color, s.golden ? 20 : 12);
   addFloatingText(s.x, s.y - 20, `+${points}`, color, s.golden ? 28 : 22);
@@ -715,14 +681,13 @@ function updateSlippers() {
     s.y += s.speed;
     s.rotation += s.rotSpeed;
 
-    // Check catch
-    if (!s.caught && s.y > foxY - 30 && s.y < foxY + 20) {
-      if (Math.abs(s.x - foxX) < foxWidth * 0.55) {
+    // 🦊 Проверка поимки (хитбокс расширен под нового фенька)
+    if (!s.caught && s.y > foxY - 35 && s.y < foxY + 25) {
+      if (Math.abs(s.x - foxX) < foxWidth * 0.6) {
         catchSlipper(s);
       }
     }
 
-    // Check miss
     if (!s.caught && s.y > H + 20) {
       missSlipper(s);
     }
@@ -738,7 +703,7 @@ function updateParticles() {
     p.vy += 0.1;
     p.life -= p.decay;
   });
-  particles = particles.filter(p => p.life > 0);
+  particles = particles.filter(p => life > 0);
 }
 
 function updateFloatingTexts() {
@@ -750,12 +715,9 @@ function updateFloatingTexts() {
 }
 
 function updateFox() {
-  // Smooth movement
   const dx = foxTargetX - foxX;
   foxX += dx * 0.15;
-
-  // Clamp
-  foxX = Math.max(foxWidth * 0.5, Math.min(W - foxWidth * 0.5, foxX));
+  foxX = Math.max(foxWidth * 0.6, Math.min(W - foxWidth * 0.6, foxX));
 
   if (foxHappy > 0) foxHappy--;
   if (foxSad > 0) foxSad--;
@@ -766,11 +728,8 @@ function gameLoop(timestamp) {
   if (!gameRunning) return;
 
   gameTime = timestamp;
-
-  // Clear
   ctx.clearRect(0, 0, W, H);
 
-  // Background gradient
   const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
   bgGrad.addColorStop(0, '#0f0520');
   bgGrad.addColorStop(0.5, '#1a0a3e');
@@ -781,11 +740,9 @@ function gameLoop(timestamp) {
   drawStars();
   drawGround();
 
-  // Spawn
   if (timestamp - lastSpawn > spawnInterval) {
     spawnSlipper();
     lastSpawn = timestamp;
-    // Increase difficulty
     difficulty = 1 + Math.floor(caught / 10) * 0.3;
     spawnInterval = Math.max(500, 1400 - caught * 20);
   }
@@ -795,7 +752,6 @@ function gameLoop(timestamp) {
   updateFloatingTexts();
   updateFox();
 
-  // Draw
   slippers.forEach(drawSlipper);
   drawFox(foxX, foxY);
   drawParticles();
@@ -807,22 +763,10 @@ function gameLoop(timestamp) {
 
 // ============ GAME CONTROL ============
 function startGame() {
-  score = 0;
-  combo = 0;
-  maxCombo = 0;
-  caught = 0;
-  missed = 0;
-  difficulty = 1;
-  spawnInterval = 1400;
-  lastSpawn = 0;
-  gameTime = 0;
-  slippers = [];
-  particles = [];
-  floatingTexts = [];
-  foxX = W / 2;
-  foxTargetX = foxX;
-  foxHappy = 0;
-  foxSad = 0;
+  score = 0; combo = 0; maxCombo = 0; caught = 0; missed = 0;
+  difficulty = 1; spawnInterval = 1400; lastSpawn = 0; gameTime = 0;
+  slippers = []; particles = []; floatingTexts = [];
+  foxX = W / 2; foxTargetX = foxX; foxHappy = 0; foxSad = 0;
 
   scoreDisplay.textContent = '0';
   updateHearts();
@@ -838,11 +782,9 @@ function startGame() {
 
 function endGame() {
   gameRunning = false;
-
   hud.classList.add('hidden');
   comboBox.style.opacity = '0';
 
-  // Show game over
   document.getElementById('finalScore').textContent = score;
   document.getElementById('statCaught').textContent = caught;
   document.getElementById('statMissed').textContent = missed;
@@ -864,12 +806,10 @@ function endGame() {
 
 function restartGame() {
   gameOverScreen.classList.add('hidden');
-  // Small delay for visual feedback
   setTimeout(() => startGame(), 100);
 }
 
 // ============ CONTROLS ============
-// Keyboard
 document.addEventListener('keydown', e => {
   if (!gameRunning) return;
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
@@ -879,33 +819,24 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Touch
-let touchStartX = 0;
-let touchFoxX = 0;
-
+let touchStartX = 0; let touchFoxX = 0;
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   if (!gameRunning) return;
-  const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
-  touchStartX = touch.clientX - rect.left;
+  touchStartX = e.touches[0].clientX - rect.left;
   touchFoxX = foxX;
 }, { passive: false });
 
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
   if (!gameRunning) return;
-  const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
-  const currentX = touch.clientX - rect.left;
+  const currentX = e.touches[0].clientX - rect.left;
   foxTargetX = touchFoxX + (currentX - touchStartX);
 }, { passive: false });
 
-// Mouse (for desktop click/drag)
-let mouseDown = false;
-let mouseStartX = 0;
-let mouseFoxX = 0;
-
+let mouseDown = false; let mouseStartX = 0; let mouseFoxX = 0;
 canvas.addEventListener('mousedown', e => {
   if (!gameRunning) return;
   mouseDown = true;
@@ -913,29 +844,20 @@ canvas.addEventListener('mousedown', e => {
   mouseStartX = e.clientX - rect.left;
   mouseFoxX = foxX;
 });
-
 canvas.addEventListener('mousemove', e => {
   if (!gameRunning || !mouseDown) return;
   const rect = canvas.getBoundingClientRect();
   const currentX = e.clientX - rect.left;
   foxTargetX = mouseFoxX + (currentX - mouseStartX);
 });
-
 canvas.addEventListener('mouseup', () => { mouseDown = false; });
 canvas.addEventListener('mouseleave', () => { mouseDown = false; });
 
 // ============ SHARE ============
 btnShare.addEventListener('click', () => {
   const text = `🦊 Фенёк Вейв набрал ${score} очков и поймал ${caught} туфелек! 👟🔥 Сыграй и ты!`;
-
   if (navigator.share) {
-    navigator.share({
-      title: 'Фенёк Вейв — Охота за туфельками',
-      text: text,
-      url: window.location.href
-    }).catch(() => {
-      fallbackCopy(text);
-    });
+    navigator.share({ title: 'Фенёк Вейв — Охота за туфельками', text: text, url: window.location.href }).catch(() => fallbackCopy(text));
   } else {
     fallbackCopy(text + ' ' + window.location.href);
   }
@@ -943,32 +865,21 @@ btnShare.addEventListener('click', () => {
 
 function fallbackCopy(text) {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('📋 Скопировано в буфер обмена!');
-    }).catch(() => {
-      showToast('Не удалось скопировать 😢');
-    });
+    navigator.clipboard.writeText(text).then(() => showToast('📋 Скопировано!')).catch(() => showToast('Не удалось скопировать 😢'));
   } else {
-    // Old school fallback
     const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     showToast('📋 Скопировано!');
   }
 }
 
-// ============ BUTTONS ============
+// ============ BUTTONS & INIT ============
 btnPlay.addEventListener('click', startGame);
 btnRestart.addEventListener('click', restartGame);
 
-// ============ INIT ============
 window.addEventListener('resize', resize);
 resize();
 
-// Draw initial background
 function drawIdle() {
   if (gameRunning) return;
   ctx.clearRect(0, 0, W, H);
@@ -979,7 +890,7 @@ function drawIdle() {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
   drawStars();
-  drawFox(W / 2, H - 80);
+  drawFox(W / 2, H - 100);
   animFrame++;
   requestAnimationFrame(drawIdle);
 }
