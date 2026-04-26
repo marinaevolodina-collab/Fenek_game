@@ -1,901 +1,216 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>🦊 Фенёк Вейв — Охота за Туфельками</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: #1a0a2e;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  #gameWrapper {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    max-width: 500px;
-    max-height: 800px;
-    overflow: hidden;
-    border-radius: 12px;
-    box-shadow: 0 0 40px rgba(255, 120, 50, 0.3);
-  }
-
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* HUD */
-  #hud {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
-    z-index: 10;
-    pointer-events: none;
-  }
-
-  #hud > div { pointer-events: auto; }
-
-  .hud-box {
-    background: rgba(255,255,255,0.12);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 12px;
-    padding: 8px 14px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .hud-box .emoji { font-size: 20px; }
-  .hud-box .value { font-size: 18px; color: #ffcc00; }
-
-  /* Overlay screens */
-  .overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 20;
-    background: rgba(10, 5, 30, 0.85);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    transition: opacity 0.3s;
-  }
-
-  .overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .overlay h1 {
-    font-size: 32px;
-    color: #ff8833;
-    margin-bottom: 8px;
-    text-align: center;
-    text-shadow: 0 0 20px rgba(255,136,51,0.5);
-  }
-
-  .overlay h2 {
-    font-size: 22px;
-    color: #ffcc00;
-    margin-bottom: 6px;
-  }
-
-  .overlay p {
-    color: rgba(255,255,255,0.7);
-    font-size: 15px;
-    margin-bottom: 24px;
-    text-align: center;
-    line-height: 1.5;
-    padding: 0 20px;
-  }
-
-  .fox-big { font-size: 80px; margin-bottom: 10px; }
-
-  .btn {
-    border: none;
-    border-radius: 16px;
-    padding: 14px 36px;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.15s;
-    margin: 6px;
-  }
-
-  .btn:active { transform: scale(0.95); }
-
-  .btn-play {
-    background: linear-gradient(135deg, #ff8833, #ff5500);
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(255,85,0,0.4);
-  }
-
-  .btn-restart {
-    background: linear-gradient(135deg, #44ccff, #2299dd);
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(34,153,221,0.4);
-  }
-
-  .btn-share {
-    background: linear-gradient(135deg, #8855ff, #6633dd);
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(102,51,221,0.4);
-    font-size: 15px;
-    padding: 12px 28px;
-  }
-
-  .score-display {
-    font-size: 52px;
-    font-weight: 800;
-    color: #ffcc00;
-    text-shadow: 0 0 30px rgba(255,204,0,0.5);
-    margin: 10px 0;
-  }
-
-  .final-stats {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-
-  .stat-box {
-    text-align: center;
-    color: #fff;
-  }
-
-  .stat-box .label { font-size: 12px; opacity: 0.6; }
-  .stat-box .num { font-size: 28px; font-weight: 700; }
-
-  /* Hearts / misses */
-  .hearts { display: flex; gap: 4px; }
-  .heart { font-size: 18px; transition: all 0.2s; }
-  .heart.lost { filter: grayscale(1); opacity: 0.3; transform: scale(0.8); }
-
-  /* Combo indicator */
-  #combo {
-    position: absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #ff5500;
-    font-size: 22px;
-    font-weight: 800;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.3s;
-    text-shadow: 0 0 15px rgba(255,85,0,0.6);
-    pointer-events: none;
-  }
-
-  #combo.show { opacity: 1; }
-
-  /* Mobile adjustments */
-  @media (max-width: 500px) {
-    #gameWrapper {
-      max-width: 100vw;
-      max-height: 100vh;
-      border-radius: 0;
-      box-shadow: none;
-    }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Фенек Вейв: Ловец Тапочек</title>
+  <style>
+    :root { --bg1: #0f172a; --bg2: #1e293b; --accent: #38bdf8; --danger: #f87171; --success: #34d399; --text: #f8fafc; }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body { overflow: hidden; background: linear-gradient(180deg, var(--bg1), var(--bg2)); font-family: system-ui, -apple-system, sans-serif; color: var(--text); touch-action: none; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #ui { position: fixed; top: 16px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 10; font-size: 1.2rem; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .stat { background: rgba(0,0,0,0.4); padding: 8px 14px; border-radius: 12px; backdrop-filter: blur(4px); }
+    .lives span { margin: 0 2px; transition: all 0.2s; }
+    .screen { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); z-index: 20; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .screen.active { opacity: 1; pointer-events: auto; }
+    .screen h1 { font-size: 2.5rem; margin-bottom: 8px; text-align: center; }
+    .screen p { font-size: 1.1rem; opacity: 0.8; text-align: center; max-width: 80%; }
+    .btn { padding: 14px 28px; font-size: 1.1rem; font-weight: 600; border: none; border-radius: 14px; background: var(--accent); color: #020617; cursor: pointer; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4); transition: transform 0.1s, box-shadow 0.2s; }
+    .btn:active { transform: scale(0.96); }
+    .btn.restart { background: var(--success); box-shadow: 0 4px 12px rgba(52, 211, 153, 0.4); }
+    @media (max-width: 600px) { #ui { font-size: 1rem; top: 10px; left: 10px; right: 10px; } .screen h1 { font-size: 2rem; } }
+  </style>
 </head>
 <body>
 
-<div id="gameWrapper">
-  <canvas id="gameCanvas"></canvas>
+<canvas id="game"></canvas>
 
-  <!-- HUD -->
-  <div id="hud" class="hidden">
-    <div class="hud-box">
-      <span class="emoji">👟</span>
-      <span class="value" id="scoreDisplay">0</span>
-    </div>
-    <div class="hud-box" id="comboBox" style="opacity:0">
-      <span>🔥</span>
-      <span id="comboText">x2</span>
-    </div>
-    <div class="hud-box">
-      <div class="hearts" id="heartsContainer"></div>
-    </div>
-  </div>
+<div id="ui">
+  <div class="stat">🩴 <span id="score">0</span></div>
+  <div class="stat lives" id="lives">🩴🩴🩴</div>
+</div>
 
-  <div id="combo"></div>
+<div id="overlay-start" class="screen active">
+  <h1>🦊 Фенек Вейв</h1>
+  <p>Лови падающие тапочки! Пропустишь 3 — грусть.<br>Управляй пальцем, мышью или стрелками.</p>
+  <button class="btn" onclick="startGame()">Начать игру</button>
+</div>
 
-  <!-- Start Screen -->
-  <div class="overlay" id="startScreen">
-    <div class="fox-big">🦊</div>
-    <h1>Фенёк Вейв</h1>
-    <h2>👟 Охота за туфельками</h2>
-    <p>Лови падающие туфельки!<br>Не дай им упасть — Фенёк расстроится 😢</p>
-    <button class="btn btn-play" id="btnPlay">▶ Играть</button>
-  </div>
-
-  <!-- Game Over Screen -->
-  <div class="overlay hidden" id="gameOverScreen">
-    <div class="fox-big" id="goEmoji">😢</div>
-    <h1 id="goTitle">Игра окончена!</h1>
-    <div class="score-display" id="finalScore">0</div>
-    <div class="final-stats">
-      <div class="stat-box">
-        <div class="num" id="statCaught">0</div>
-        <div class="label">Поймано</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" id="statMissed">0</div>
-        <div class="label">Пропущено</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" id="statMaxCombo">0</div>
-        <div class="label">Макс. комбо</div>
-      </div>
-    </div>
-    <button class="btn btn-restart" id="btnRestart">🔄 Играть снова</button>
-    <button class="btn btn-share" id="btnShare">📤 Поделиться</button>
-  </div>
-
-  <!-- Toast -->
-  <div id="toast"></div>
+<div id="overlay-gameover" class="screen">
+  <h1 id="go-title">😢 Грусть</h1>
+  <p>Вейв не догнал тапочки...<br>Счёт: <span id="final-score">0</span></p>
+  <button class="btn restart" onclick="restartGame()">🔄 Играть снова</button>
 </div>
 
 <script>
-// ============ GAME ENGINE ============
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const wrapper = document.getElementById('gameWrapper');
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const uiScore = document.getElementById('score');
+  const uiLives = document.getElementById('lives');
+  const startScreen = document.getElementById('overlay-start');
+  const goScreen = document.getElementById('overlay-gameover');
+  const finalScore = document.getElementById('final-score');
+  const goTitle = document.getElementById('go-title');
 
-// UI elements
-const hud = document.getElementById('hud');
-const scoreDisplay = document.getElementById('scoreDisplay');
-const heartsContainer = document.getElementById('heartsContainer');
-const startScreen = document.getElementById('startScreen');
-const gameOverScreen = document.getElementById('gameOverScreen');
-const btnPlay = document.getElementById('btnPlay');
-const btnRestart = document.getElementById('btnRestart');
-const btnShare = document.getElementById('btnShare');
-const toast = document.getElementById('toast');
-const comboEl = document.getElementById('combo');
-const comboBox = document.getElementById('comboBox');
-const comboText = document.getElementById('comboText');
+  let W, H, dpr, rafId;
+  let state = 'start';
+  let score = 0;
+  let lives = 3;
+  let frame = 0;
 
-// Game state
-let W, H;
-let gameRunning = false;
-let score = 0;
-let combo = 0;
-let maxCombo = 0;
-let caught = 0;
-let missed = 0;
-const MAX_MISSES = 5;
-let slippers = [];
-let particles = [];
-let floatingTexts = [];
-let stars = [];
-let lastSpawn = 0;
-let spawnInterval = 1400;
-let difficulty = 1;
+  const fenek = { x: 0, y: 0, w: 110, h: 95, earOffset: 0, targetX: 0 };
+  let slippers = [];
+  let spawnRate = 90;
+  let fallSpeed = 3.2;
+  let inputX = null;
+  let keys = {};
 
-// 🦊 ИЗМЕНЕНИЯ: Увеличен размер фенька
-let foxWidth = 90;
-let foxY = 0;
-let foxX = 0;
-let foxTargetX = 0;
-let foxHappy = 0; 
-let foxSad = 0;
-let animFrame = 0;
-let gameTime = 0;
-
-// Slipper types
-const SLIPPER_TYPES = [
-  { emoji: '👟', points: 1, speed: 1 },
-  { emoji: '👠', points: 2, speed: 1.3 },
-  { emoji: '👢', points: 3, speed: 0.9 },
-  { emoji: '👡', points: 2, speed: 1.5 },
-  { emoji: '🥿', points: 1, speed: 1.1 },
-];
-
-const GOLDEN = { emoji: '✨👟✨', points: 5, speed: 0.7, golden: true };
-
-function resize() {
-  const rect = wrapper.getBoundingClientRect();
-  W = rect.width;
-  H = rect.height;
-  canvas.width = W * window.devicePixelRatio;
-  canvas.height = H * window.devicePixelRatio;
-  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
-  foxY = H - 100; // 🦊 Поднято, чтобы лапы стояли на "земле"
-  if (!gameRunning) {
-    foxX = W / 2;
-    foxTargetX = foxX;
+  function initCanvas() {
+    dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+    fenek.y = H - 100;
+    fenek.targetX = fenek.x = W / 2;
   }
-  initStars();
-}
 
-function initStars() {
-  stars = [];
-  for (let i = 0; i < 60; i++) {
-    stars.push({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.5 + 0.3,
-      a: Math.random(),
-      speed: Math.random() * 0.005 + 0.002
-    });
-  }
-}
-
-function updateHearts() {
-  heartsContainer.innerHTML = '';
-  for (let i = 0; i < MAX_MISSES; i++) {
-    const span = document.createElement('span');
-    span.className = 'heart' + (i >= (MAX_MISSES - missed) ? ' lost' : '');
-    span.textContent = '💖';
-    heartsContainer.appendChild(span);
-  }
-}
-
-function showToast(msg, duration = 2000) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), duration);
-}
-
-// ============ DRAWING ============
-function drawStars() {
-  stars.forEach(s => {
-    s.a += s.speed;
-    const alpha = 0.3 + Math.sin(s.a) * 0.3;
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fill();
+  window.addEventListener('resize', () => {
+    initCanvas();
+    if (state === 'playing') updateUI();
   });
-}
 
-// 🦊 ОБНОВЛЁННАЯ ФУНКЦИЯ РИСОВАНИЯ (Больше уши и тело)
-function drawFox(x, y) {
-  const size = foxWidth;
-  ctx.save();
-  ctx.translate(x, y);
+  window.addEventListener('keydown', e => keys[e.key] = true);
+  window.addEventListener('keyup', e => keys[e.key] = false);
 
-  let bounce = 0;
-  if (foxHappy > 0) bounce = Math.sin(foxHappy * 0.3) * 5;
-  ctx.translate(0, bounce);
+  function handlePointer(x) { inputX = x; }
+  window.addEventListener('mousemove', e => handlePointer(e.clientX));
+  window.addEventListener('touchmove', e => {
+    e.preventDefault();
+    handlePointer(e.touches[0].clientX);
+  }, { passive: false });
 
-  // Тело (увеличено)
-  ctx.fillStyle = '#f4a020';
-  ctx.beginPath();
-  ctx.ellipse(0, 5, size * 0.45, size * 0.38, 0, 0, Math.PI * 2);
-  ctx.fill();
+  function updateInput() {
+    if (keys['ArrowLeft'] || keys['a'] || keys['ф']) fenek.targetX -= 9;
+    if (keys['ArrowRight'] || keys['d'] || keys['в']) fenek.targetX += 9;
+    fenek.targetX = Math.max(fenek.w/2, Math.min(W - fenek.w/2, fenek.targetX));
 
-  // Голова (увеличена)
-  ctx.fillStyle = '#f4a020';
-  ctx.beginPath();
-  ctx.ellipse(0, -size * 0.2, size * 0.42, size * 0.35, 0, 0, Math.PI * 2);
-  ctx.fill();
+    if (inputX !== null) {
+      fenek.x += (fenek.targetX - fenek.x) * 0.18;
+      fenek.targetX = fenek.x;
+    } else {
+      fenek.x = fenek.targetX;
+    }
+    fenek.x = Math.max(fenek.w/2, Math.min(W - fenek.w/2, fenek.x));
+    // Усиленная анимация покачивания ушей
+    fenek.earOffset = Math.sin(frame * 0.12) * 5 + Math.cos(frame * 0.08) * 3;
+  }
 
-  // 🌟 ОГРОМНЫЕ УШИ (в стиле фенька)
-  ctx.fillStyle = '#e89010';
-  // Левое ухо
-  ctx.beginPath();
-  ctx.moveTo(-size * 0.25, -size * 0.35);
-  ctx.lineTo(-size * 0.58, -size * 1.2);
-  ctx.lineTo(-size * 0.05, -size * 0.4);
-  ctx.fill();
-  // Правое ухо
-  ctx.beginPath();
-  ctx.moveTo(size * 0.25, -size * 0.35);
-  ctx.lineTo(size * 0.58, -size * 1.2);
-  ctx.lineTo(size * 0.05, -size * 0.4);
-  ctx.fill();
+  function spawnSlipper() {
+    slippers.push({ x: Math.random() * (W - 40) + 20, y: -30, r: 18, speed: fallSpeed + Math.random() * 1.2 });
+  }
 
-  // Внутренняя часть ушей
-  ctx.fillStyle = '#ffb8b8';
-  ctx.beginPath();
-  ctx.moveTo(-size * 0.22, -size * 0.4);
-  ctx.lineTo(-size * 0.52, -size * 1.1);
-  ctx.lineTo(-size * 0.08, -size * 0.45);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(size * 0.22, -size * 0.4);
-  ctx.lineTo(size * 0.52, -size * 1.1);
-  ctx.lineTo(size * 0.08, -size * 0.45);
-  ctx.fill();
+  function checkCollision(s) {
+    const dx = s.x - fenek.x;
+    const dy = s.y - (fenek.y - 20); // Центр хитбокса смещён выше к мордочке
+    return Math.hypot(dx, dy) < (s.r + 48); // Радиус под увеличенный размер
+  }
 
-  // Белая мордочка
-  ctx.fillStyle = '#fff5e6';
-  ctx.beginPath();
-  ctx.ellipse(0, -size * 0.15, size * 0.28, size * 0.22, 0, 0, Math.PI * 2);
-  ctx.fill();
+  function drawFenek() {
+    const { x, y, w, h, earOffset } = fenek;
+    ctx.save();
+    ctx.translate(x, y);
 
-  // Глаза
-  const eyeY = -size * 0.25;
-  if (foxSad > 0) {
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(-size * 0.15, eyeY, 5, Math.PI, 0);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(size * 0.15, eyeY, 5, Math.PI, 0);
-    ctx.stroke();
-    ctx.fillStyle = '#66ccff';
-    ctx.beginPath();
-    ctx.ellipse(-size * 0.22, eyeY + 10, 4, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(size * 0.22, eyeY + 10, 4, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (foxHappy > 0) {
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(-size * 0.15, eyeY, 6, Math.PI, 0);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(size * 0.15, eyeY, 6, Math.PI, 0);
-    ctx.stroke();
-  } else {
-    ctx.fillStyle = '#333';
-    ctx.beginPath();
-    ctx.ellipse(-size * 0.15, eyeY, 5, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(size * 0.15, eyeY, 5, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // --- Большие уши ---
+    ctx.fillStyle = '#f59e0b';
+    // Левое
+    ctx.beginPath(); ctx.ellipse(-w/2 - 8, -h/2 - 40 + earOffset, 26, 65, -0.15, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fcd34d'; // Внутренняя часть
+    ctx.beginPath(); ctx.ellipse(-w/2 - 8, -h/2 - 40 + earOffset, 16, 48, -0.15, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#f59e0b';
+    // Правое
+    ctx.beginPath(); ctx.ellipse(w/2 + 8, -h/2 - 40 - earOffset, 26, 65, 0.15, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fcd34d';
+    ctx.beginPath(); ctx.ellipse(w/2 + 8, -h/2 - 40 - earOffset, 16, 48, 0.15, 0, Math.PI*2); ctx.fill();
+
+    // --- Голова ---
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath(); ctx.arc(0, -18, w/2, 0, Math.PI*2); ctx.fill();
+
+    // Мордочка (более вытянутая)
+    ctx.fillStyle = '#fef3c7';
+    ctx.beginPath(); ctx.ellipse(0, -5, w/3 + 8, h/4 + 8, 0, 0, Math.PI*2); ctx.fill();
+
+    // Глаза + блики
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath(); ctx.arc(-14, -18, 5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(14, -18, 5, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(-size * 0.12, eyeY - 2, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(size * 0.18, eyeY - 2, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
+    ctx.beginPath(); ctx.arc(-12, -20, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(16, -20, 2, 0, Math.PI*2); ctx.fill();
 
-  // Нос
-  ctx.fillStyle = '#333';
-  ctx.beginPath();
-  ctx.ellipse(0, -size * 0.12, 4, 3, 0, 0, Math.PI * 2);
-  ctx.fill();
+    // Нос
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath(); ctx.arc(0, -2, 4, 0, Math.PI*2); ctx.fill();
 
-  // Рот
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  if (foxHappy > 0) {
-    ctx.arc(0, -size * 0.05, 7, 0, Math.PI);
-  } else if (foxSad > 0) {
-    ctx.arc(0, size * 0.02, 7, Math.PI, 0);
-  } else {
-    ctx.moveTo(-5, -size * 0.08);
-    ctx.lineTo(0, -size * 0.05);
-    ctx.lineTo(5, -size * 0.08);
-  }
-  ctx.stroke();
-
-  // Хвост
-  const tailWag = Math.sin(animFrame * 0.08) * 10;
-  ctx.fillStyle = '#f4a020';
-  ctx.beginPath();
-  ctx.moveTo(size * 0.3, 5);
-  ctx.quadraticCurveTo(size * 0.6 + tailWag, -8, size * 0.5 + tailWag, -25);
-  ctx.quadraticCurveTo(size * 0.4 + tailWag, -12, size * 0.3, 5);
-  ctx.fill();
-
-  ctx.fillStyle = '#fff5e6';
-  ctx.beginPath();
-  ctx.ellipse(size * 0.5 + tailWag, -25, 8, 6, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Лапы
-  ctx.fillStyle = '#e89010';
-  ctx.beginPath();
-  ctx.ellipse(-size * 0.25, size * 0.32, 10, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(size * 0.25, size * 0.32, 10, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-function drawSlipper(s) {
-  ctx.save();
-  ctx.translate(s.x, s.y);
-  ctx.rotate(s.rotation);
-
-  if (s.golden) {
-    ctx.shadowColor = '#ffcc00';
-    ctx.shadowBlur = 20;
-  }
-
-  ctx.font = `${s.size}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(s.type.emoji, 0, 0);
-
-  ctx.shadowBlur = 0;
-  ctx.restore();
-}
-
-function drawParticles() {
-  particles.forEach(p => {
-    ctx.save();
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
+    // Рот
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.5;
+    if (state === 'playing') {
+      ctx.beginPath(); ctx.arc(0, 5, 9, 0.2, Math.PI-0.2); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(0, 11, 9, Math.PI+0.2, -0.2); ctx.stroke();
+    }
     ctx.restore();
-  });
-}
+  }
 
-function drawFloatingTexts() {
-  floatingTexts.forEach(ft => {
-    ctx.save();
-    ctx.globalAlpha = ft.life;
-    ctx.font = `bold ${ft.size}px 'Segoe UI', sans-serif`;
-    ctx.fillStyle = ft.color;
+  function drawSlipper(s) {
+    ctx.font = `${s.r * 2}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 4;
-    ctx.fillText(ft.text, ft.x, ft.y);
-    ctx.restore();
-  });
-}
-
-function drawGround() {
-  const gradient = ctx.createLinearGradient(0, H - 40, 0, H);
-  gradient.addColorStop(0, 'rgba(244,160,32,0.1)');
-  gradient.addColorStop(1, 'rgba(244,160,32,0.05)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, H - 40, W, 40);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, H - 40);
-  ctx.lineTo(W, H - 40);
-  ctx.stroke();
-}
-
-// ============ GAME LOGIC ============
-function spawnSlipper() {
-  const isGolden = Math.random() < 0.08;
-  const type = isGolden ? GOLDEN : SLIPPER_TYPES[Math.floor(Math.random() * SLIPPER_TYPES.length)];
-  const size = 36 + Math.random() * 12;
-
-  slippers.push({
-    x: 30 + Math.random() * (W - 60),
-    y: -40,
-    size: size,
-    type: type,
-    speed: (1.5 + Math.random() * 1.5) * type.speed * (1 + difficulty * 0.15),
-    rotation: Math.random() * Math.PI * 2,
-    rotSpeed: (Math.random() - 0.5) * 0.04,
-    golden: isGolden || false,
-    caught: false
-  });
-}
-
-function spawnParticles(x, y, color, count = 12) {
-  for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
-    const speed = 2 + Math.random() * 4;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 2,
-      r: 2 + Math.random() * 4,
-      life: 1,
-      decay: 0.02 + Math.random() * 0.02,
-      color: color
-    });
-  }
-}
-
-function addFloatingText(x, y, text, color = '#ffcc00', size = 22) {
-  floatingTexts.push({
-    x, y, text, color, size,
-    vy: -2,
-    life: 1,
-    decay: 0.02
-  });
-}
-
-function catchSlipper(s) {
-  s.caught = true;
-  combo++;
-  caught++;
-  if (combo > maxCombo) maxCombo = combo;
-
-  const multiplier = Math.min(combo, 5);
-  const points = s.type.points * multiplier;
-  score += points;
-
-  foxHappy = 20;
-  foxSad = 0;
-
-  const color = s.golden ? '#ffcc00' : '#ff8833';
-  spawnParticles(s.x, s.y, color, s.golden ? 20 : 12);
-  addFloatingText(s.x, s.y - 20, `+${points}`, color, s.golden ? 28 : 22);
-
-  if (combo >= 2) {
-    comboText.textContent = `x${multiplier}`;
-    comboBox.style.opacity = '1';
-    comboEl.textContent = `🔥 COMBO x${multiplier}!`;
-    comboEl.classList.add('show');
-    setTimeout(() => { comboEl.classList.remove('show'); }, 800);
+    ctx.fillText('🩴', s.x, s.y);
   }
 
-  scoreDisplay.textContent = score;
-  scoreDisplay.style.transform = 'scale(1.3)';
-  setTimeout(() => { scoreDisplay.style.transform = 'scale(1)'; }, 150);
-}
+  function update() {
+    if (state !== 'playing') return;
+    frame++;
+    updateInput();
 
-function missSlipper(s) {
-  missed++;
-  combo = 0;
-  comboBox.style.opacity = '0';
-  foxSad = 30;
-  foxHappy = 0;
+    if (frame % Math.floor(spawnRate) === 0) spawnSlipper();
 
-  spawnParticles(s.x, s.y, '#6688cc', 8);
-  addFloatingText(s.x, s.y - 20, '😢', '#6688cc', 24);
+    for (let i = slippers.length - 1; i >= 0; i--) {
+      const s = slippers[i];
+      s.y += s.speed;
 
-  updateHearts();
-
-  if (missed >= MAX_MISSES) {
-    endGame();
-  }
-}
-
-function updateSlippers() {
-  slippers.forEach(s => {
-    s.y += s.speed;
-    s.rotation += s.rotSpeed;
-
-    // 🦊 Проверка поимки (хитбокс расширен под нового фенька)
-    if (!s.caught && s.y > foxY - 35 && s.y < foxY + 25) {
-      if (Math.abs(s.x - foxX) < foxWidth * 0.6) {
-        catchSlipper(s);
+      if (checkCollision(s)) {
+        score++; updateUI(); slippers.splice(i, 1);
+        if (score % 5 === 0) { fallSpeed += 0.25; spawnRate = Math.max(45, spawnRate - 4); }
+      } else if (s.y > H + 30) {
+        lives--; updateUI(); slippers.splice(i, 1);
+        if (lives <= 0) gameOver();
       }
     }
-
-    if (!s.caught && s.y > H + 20) {
-      missSlipper(s);
-    }
-  });
-
-  slippers = slippers.filter(s => !s.caught && s.y <= H + 20);
-}
-
-function updateParticles() {
-  particles.forEach(p => {
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.1;
-    p.life -= p.decay;
-  });
-  particles = particles.filter(p => life > 0);
-}
-
-function updateFloatingTexts() {
-  floatingTexts.forEach(ft => {
-    ft.y += ft.vy;
-    ft.life -= ft.decay;
-  });
-  floatingTexts = floatingTexts.filter(ft => ft.life > 0);
-}
-
-function updateFox() {
-  const dx = foxTargetX - foxX;
-  foxX += dx * 0.15;
-  foxX = Math.max(foxWidth * 0.6, Math.min(W - foxWidth * 0.6, foxX));
-
-  if (foxHappy > 0) foxHappy--;
-  if (foxSad > 0) foxSad--;
-}
-
-// ============ GAME LOOP ============
-function gameLoop(timestamp) {
-  if (!gameRunning) return;
-
-  gameTime = timestamp;
-  ctx.clearRect(0, 0, W, H);
-
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#0f0520');
-  bgGrad.addColorStop(0.5, '#1a0a3e');
-  bgGrad.addColorStop(1, '#2a1050');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-
-  drawStars();
-  drawGround();
-
-  if (timestamp - lastSpawn > spawnInterval) {
-    spawnSlipper();
-    lastSpawn = timestamp;
-    difficulty = 1 + Math.floor(caught / 10) * 0.3;
-    spawnInterval = Math.max(500, 1400 - caught * 20);
   }
 
-  updateSlippers();
-  updateParticles();
-  updateFloatingTexts();
-  updateFox();
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)'; ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-  slippers.forEach(drawSlipper);
-  drawFox(foxX, foxY);
-  drawParticles();
-  drawFloatingTexts();
-
-  animFrame++;
-  requestAnimationFrame(gameLoop);
-}
-
-// ============ GAME CONTROL ============
-function startGame() {
-  score = 0; combo = 0; maxCombo = 0; caught = 0; missed = 0;
-  difficulty = 1; spawnInterval = 1400; lastSpawn = 0; gameTime = 0;
-  slippers = []; particles = []; floatingTexts = [];
-  foxX = W / 2; foxTargetX = foxX; foxHappy = 0; foxSad = 0;
-
-  scoreDisplay.textContent = '0';
-  updateHearts();
-
-  hud.classList.remove('hidden');
-  startScreen.classList.add('hidden');
-  gameOverScreen.classList.add('hidden');
-  comboBox.style.opacity = '0';
-
-  gameRunning = true;
-  requestAnimationFrame(gameLoop);
-}
-
-function endGame() {
-  gameRunning = false;
-  hud.classList.add('hidden');
-  comboBox.style.opacity = '0';
-
-  document.getElementById('finalScore').textContent = score;
-  document.getElementById('statCaught').textContent = caught;
-  document.getElementById('statMissed').textContent = missed;
-  document.getElementById('statMaxCombo').textContent = maxCombo;
-
-  if (score >= 50) {
-    document.getElementById('goEmoji').textContent = '🦊🎉';
-    document.getElementById('goTitle').textContent = 'Отлично!';
-  } else if (score >= 20) {
-    document.getElementById('goEmoji').textContent = '🦊😊';
-    document.getElementById('goTitle').textContent = 'Хорошо!';
-  } else {
-    document.getElementById('goEmoji').textContent = '🦊😢';
-    document.getElementById('goTitle').textContent = 'Игра окончена!';
+    slippers.forEach(drawSlipper);
+    drawFenek();
   }
 
-  gameOverScreen.classList.remove('hidden');
-}
+  function loop() { update(); draw(); if (state === 'playing') rafId = requestAnimationFrame(loop); }
+  function updateUI() { uiScore.textContent = score; uiLives.innerHTML = '🩴'.repeat(Math.max(0, lives)) + '💔'.repeat(Math.max(0, 3 - lives)); }
+  function startGame() { startScreen.classList.remove('active'); resetState(); state = 'playing'; loop(); }
+  function gameOver() { state = 'gameover'; cancelAnimationFrame(rafId); finalScore.textContent = score; goScreen.classList.add('active'); }
+  function restartGame() { goScreen.classList.remove('active'); resetState(); state = 'playing'; loop(); }
+  function resetState() { score = 0; lives = 3; fallSpeed = 3.2; spawnRate = 90; slippers = []; frame = 0; fenek.x = fenek.targetX = W / 2; updateUI(); }
 
-function restartGame() {
-  gameOverScreen.classList.add('hidden');
-  setTimeout(() => startGame(), 100);
-}
-
-// ============ CONTROLS ============
-document.addEventListener('keydown', e => {
-  if (!gameRunning) return;
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-    foxTargetX = foxX - 40;
-  } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-    foxTargetX = foxX + 40;
-  }
-});
-
-let touchStartX = 0; let touchFoxX = 0;
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if (!gameRunning) return;
-  const rect = canvas.getBoundingClientRect();
-  touchStartX = e.touches[0].clientX - rect.left;
-  touchFoxX = foxX;
-}, { passive: false });
-
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if (!gameRunning) return;
-  const rect = canvas.getBoundingClientRect();
-  const currentX = e.touches[0].clientX - rect.left;
-  foxTargetX = touchFoxX + (currentX - touchStartX);
-}, { passive: false });
-
-let mouseDown = false; let mouseStartX = 0; let mouseFoxX = 0;
-canvas.addEventListener('mousedown', e => {
-  if (!gameRunning) return;
-  mouseDown = true;
-  const rect = canvas.getBoundingClientRect();
-  mouseStartX = e.clientX - rect.left;
-  mouseFoxX = foxX;
-});
-canvas.addEventListener('mousemove', e => {
-  if (!gameRunning || !mouseDown) return;
-  const rect = canvas.getBoundingClientRect();
-  const currentX = e.clientX - rect.left;
-  foxTargetX = mouseFoxX + (currentX - mouseStartX);
-});
-canvas.addEventListener('mouseup', () => { mouseDown = false; });
-canvas.addEventListener('mouseleave', () => { mouseDown = false; });
-
-// ============ SHARE ============
-btnShare.addEventListener('click', () => {
-  const text = `🦊 Фенёк Вейв набрал ${score} очков и поймал ${caught} туфелек! 👟🔥 Сыграй и ты!`;
-  if (navigator.share) {
-    navigator.share({ title: 'Фенёк Вейв — Охота за туфельками', text: text, url: window.location.href }).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text + ' ' + window.location.href);
-  }
-});
-
-function fallbackCopy(text) {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => showToast('📋 Скопировано!')).catch(() => showToast('Не удалось скопировать 😢'));
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    showToast('📋 Скопировано!');
-  }
-}
-
-// ============ BUTTONS & INIT ============
-btnPlay.addEventListener('click', startGame);
-btnRestart.addEventListener('click', restartGame);
-
-window.addEventListener('resize', resize);
-resize();
-
-function drawIdle() {
-  if (gameRunning) return;
-  ctx.clearRect(0, 0, W, H);
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#0f0520');
-  bgGrad.addColorStop(0.5, '#1a0a3e');
-  bgGrad.addColorStop(1, '#2a1050');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-  drawStars();
-  drawFox(W / 2, H - 100);
-  animFrame++;
-  requestAnimationFrame(drawIdle);
-}
-
-drawIdle();
+  initCanvas(); updateUI();
 </script>
 </body>
 </html>
